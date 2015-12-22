@@ -13,6 +13,8 @@
 		89DFBEE21C28B64C0091AFD5 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 89DFBEE01C28B64C0091AFD5 /* Main.storyboard */; };
 		89DFBEE41C28B64C0091AFD5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 89DFBEE31C28B64C0091AFD5 /* Assets.xcassets */; };
 		89DFBEE71C28B64C0091AFD5 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 89DFBEE51C28B64C0091AFD5 /* LaunchScreen.storyboard */; };
+		89DFBEF01C29E7130091AFD5 /* SocialVideoHelper.m in Sources */ = {isa = PBXBuildFile; fileRef = 89DFBEEF1C29E7130091AFD5 /* SocialVideoHelper.m */; };
+		89DFBEF21C29F0200091AFD5 /* sample_mpeg4.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 89DFBEF11C29E7DD0091AFD5 /* sample_mpeg4.mp4 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -26,6 +28,9 @@
 		89DFBEE31C28B64C0091AFD5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		89DFBEE61C28B64C0091AFD5 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		89DFBEE81C28B64C0091AFD5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		89DFBEEE1C29E7130091AFD5 /* SocialVideoHelper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SocialVideoHelper.h; sourceTree = "<group>"; };
+		89DFBEEF1C29E7130091AFD5 /* SocialVideoHelper.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SocialVideoHelper.m; sourceTree = "<group>"; };
+		89DFBEF11C29E7DD0091AFD5 /* sample_mpeg4.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = sample_mpeg4.mp4; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,6 +63,9 @@
 		89DFBED61C28B64C0091AFD5 /* TwitterVideoUpload */ = {
 			isa = PBXGroup;
 			children = (
+				89DFBEF11C29E7DD0091AFD5 /* sample_mpeg4.mp4 */,
+				89DFBEEE1C29E7130091AFD5 /* SocialVideoHelper.h */,
+				89DFBEEF1C29E7130091AFD5 /* SocialVideoHelper.m */,
 				89DFBEDA1C28B64C0091AFD5 /* AppDelegate.h */,
 				89DFBEDB1C28B64C0091AFD5 /* AppDelegate.m */,
 				89DFBEDD1C28B64C0091AFD5 /* ViewController.h */,
@@ -137,6 +145,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				89DFBEE71C28B64C0091AFD5 /* LaunchScreen.storyboard in Resources */,
+				89DFBEF21C29F0200091AFD5 /* sample_mpeg4.mp4 in Resources */,
 				89DFBEE41C28B64C0091AFD5 /* Assets.xcassets in Resources */,
 				89DFBEE21C28B64C0091AFD5 /* Main.storyboard in Resources */,
 			);
@@ -149,6 +158,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				89DFBEF01C29E7130091AFD5 /* SocialVideoHelper.m in Sources */,
 				89DFBEDF1C28B64C0091AFD5 /* ViewController.m in Sources */,
 				89DFBEDC1C28B64C0091AFD5 /* AppDelegate.m in Sources */,
 				89DFBED91C28B64C0091AFD5 /* main.m in Sources */,
@@ -264,6 +274,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				INFOPLIST_FILE = TwitterVideoUpload/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.1;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.tvo.TwitterVideoUpload;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -275,6 +286,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				INFOPLIST_FILE = TwitterVideoUpload/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.1;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.tvo.TwitterVideoUpload;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -300,6 +312,7 @@
 				89DFBEED1C28B64C0091AFD5 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
