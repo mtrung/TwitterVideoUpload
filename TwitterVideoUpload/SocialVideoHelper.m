@@ -128,6 +128,8 @@ static SocialVideoHelper *sInstance = nil;
     return TRUE;
 }
 
+#define MAX_VIDEO_SIZE (5 * (1 << 20))
+
 /* Standard success flow:
     0 >> INIT
     0 << INIT: HTTP status 202 accepted
@@ -153,8 +155,23 @@ static SocialVideoHelper *sInstance = nil;
     // Set the account and begin the request.
     request.account = self.account;
     
-    if (i == 1) {
-        [request addMultipartData:videoData withName:@"media" type:@"video/mp4" filename:@"video"];
+    if (i >= 1 && i < paramList.count-2) {
+        
+        NSData* videoChunk;
+        
+        if (videoData.length > MAX_VIDEO_SIZE) {
+            int segment_index = [postParams[@"segment_index"] intValue];
+            NSRange range = NSMakeRange(segment_index*MAX_VIDEO_SIZE, MAX_VIDEO_SIZE);
+            int maxPos = NSMaxRange(range);
+            if (maxPos >= videoData.length) {
+                range.length = videoData.length-1 - range.location;
+            }
+            videoChunk = [videoData subdataWithRange:range];
+            NSLog(@"segment_index %d: loc=%d len=%d maxPos=%d", segment_index, range.location, range.length, maxPos);
+        }
+        else videoChunk = videoData;
+        
+        [request addMultipartData:videoChunk withName:@"media" type:@"video/mp4" filename:@"video"];
     }
     
     NSString* cmdStr = postParams[@"command"];
@@ -175,7 +192,7 @@ static SocialVideoHelper *sInstance = nil;
             BOOL is2XX = ([urlResponse statusCode] / 100) == 2;
             if (!is2XX) {
                 NSMutableDictionary *returnedData = [NSJSONSerialization JSONObjectWithData:responseData options:NSJSONReadingMutableContainers error:&error];
-                NSString* errStr = (returnedData) ? returnedData[@"error"] : statusStr;
+                NSString* errStr = (returnedData && returnedData[@"error"]) ? returnedData[@"error"] : statusStr;
                 DispatchMainThread(^(){completion(errStr);});
                 return;
             }
@@ -188,11 +205,19 @@ static SocialVideoHelper *sInstance = nil;
                 
                 //  ...since we have mediaID, we now can populate the rest of paramList
                 
-                int cmdIndex = 1;
-                paramList[cmdIndex] = @{@"command": @"APPEND",
-                                 @"media_id" : mediaID,
-                                 @"segment_index" : @(cmdIndex-1).stringValue
-                                 };
+                int segment = 0;
+                for (; segment*MAX_VIDEO_SIZE < videoData.length; segment++) {
+                    paramList[segment+1] = @{@"command": @"APPEND",
+                                            @"media_id" : mediaID,
+                                            @"segment_index" : @(segment).stringValue
+                                            };
+                }
+
+                int cmdIndex = segment;
+//                paramList[cmdIndex] = @{@"command": @"APPEND",
+//                                 @"media_id" : mediaID,
+//                                 @"segment_index" : @(cmdIndex-1).stringValue
+//                                 };
                 
                 paramList[++cmdIndex] = @{@"command": @"FINALIZE",
                                  @"media_id" : mediaID };

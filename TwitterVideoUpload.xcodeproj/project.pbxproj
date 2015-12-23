@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		8908C14E1C2B125D002EAB26 /* rxmedsaver_app_intro_video.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 8908C14D1C2B125D002EAB26 /* rxmedsaver_app_intro_video.mp4 */; };
+		8908C1501C2B3802002EAB26 /* shareBig.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = 8908C14F1C2B3802002EAB26 /* shareBig.mp4 */; };
 		89DFBED91C28B64C0091AFD5 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 89DFBED81C28B64C0091AFD5 /* main.m */; };
 		89DFBEDC1C28B64C0091AFD5 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 89DFBEDB1C28B64C0091AFD5 /* AppDelegate.m */; };
 		89DFBEDF1C28B64C0091AFD5 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 89DFBEDE1C28B64C0091AFD5 /* ViewController.m */; };
@@ -22,6 +23,7 @@
 
 /* Begin PBXFileReference section */
 		8908C14D1C2B125D002EAB26 /* rxmedsaver_app_intro_video.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = rxmedsaver_app_intro_video.mp4; sourceTree = "<group>"; };
+		8908C14F1C2B3802002EAB26 /* shareBig.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = shareBig.mp4; sourceTree = "<group>"; };
 		89DFBED41C28B64C0091AFD5 /* TwitterVideoUpload.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TwitterVideoUpload.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		89DFBED81C28B64C0091AFD5 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		89DFBEDA1C28B64C0091AFD5 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -96,6 +98,7 @@
 		BBA6D48C1C2AFC330021F894 /* testvideos */ = {
 			isa = PBXGroup;
 			children = (
+				8908C14F1C2B3802002EAB26 /* shareBig.mp4 */,
 				8908C14D1C2B125D002EAB26 /* rxmedsaver_app_intro_video.mp4 */,
 				BBA6D4971C2AFCB90021F894 /* SampleVideo_1080x720_1mb.mp4 */,
 				BBA6D48E1C2AFC330021F894 /* fail_finalize.mp4 */,
@@ -163,6 +166,7 @@
 			files = (
 				89DFBEE71C28B64C0091AFD5 /* LaunchScreen.storyboard in Resources */,
 				8908C14E1C2B125D002EAB26 /* rxmedsaver_app_intro_video.mp4 in Resources */,
+				8908C1501C2B3802002EAB26 /* shareBig.mp4 in Resources */,
 				BBA6D4931C2AFC330021F894 /* fail_finalize.mp4 in Resources */,
 				BBA6D4981C2AFCB90021F894 /* SampleVideo_1080x720_1mb.mp4 in Resources */,
 				89DFBEE41C28B64C0091AFD5 /* Assets.xcassets in Resources */,
