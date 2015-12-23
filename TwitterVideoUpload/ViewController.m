@@ -24,23 +24,36 @@
     
     [SocialVideoHelper instance].statusContent = @"#TwitterVideo https://github.com/mtrung/TwitterVideoUpload";
     
-    BOOL status = [[SocialVideoHelper instance] setVideo:@"rxmedsaver_app_intro_video"];
+}
+
+- (IBAction)sharePass:(id)sender {
+    [self share:@"pass"];
+}
+- (IBAction)shareFail:(id)sender {
+    [self share:@"fail_finalize"];
+}
+
+- (void) share:(NSString*)filename {
+    
+    BOOL status = [[SocialVideoHelper instance] setVideo:filename];
     if (status == FALSE) {
         [self addText:@"Failed reading video file"];
+        return;
     }
     
     status = [[SocialVideoHelper instance] uploadTwitterVideo:^(NSString* errorString)
-    {
-        if (errorString == nil)
-            [self addText:@"Complete"];
-        else [self addText:errorString];
-    }];
+              {
+                  NSString* printStr = [NSString stringWithFormat:@"Share video %@: %@", filename,
+                                        (errorString == nil) ? @"Success" : errorString];
+                  [self addText:printStr];
+              }];
     
     
     if (status == FALSE) {
-        [self addText:@"Failed pre-check"];
+        [self addText:@"No Twitter account. Please add twitter account to Settings app."];
     }
 }
+
 
 - (void) addText:(NSString*)str {
     if ([NSThread isMainThread])
