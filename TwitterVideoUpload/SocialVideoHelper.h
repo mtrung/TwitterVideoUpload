@@ -1,8 +1,8 @@
 //
 //  SocialVideoHelper.h
 //
-//  Created by ryu-ushin on 6/5/15.
-//  Copyright (c) 2015 ryu-ushin. All rights reserved.
+//  Created by Trung Vo on 12/22/15.
+//  Copyright (c) 2015 Trung Vo. All rights reserved.
 //
 
 #import <Foundation/Foundation.h>
@@ -11,13 +11,13 @@
 
 #define DispatchMainThread(block, ...) if(block) dispatch_async(dispatch_get_main_queue(), ^{ block(__VA_ARGS__); })
 
+typedef void(^CbUploadComplete)(NSString* errStr);
+
 @interface SocialVideoHelper : NSObject
 
-+(void)uploadTwitterVideo:(NSData*)videoData account:(ACAccount*)account withCompletion:(dispatch_block_t)completion;
++ (BOOL) userHasAccessToTwitter;
++ (SocialVideoHelper*) instance;
 
-+(void)uploadFacebookVideo:(NSData*)videoData account:(ACAccount*)account withCompletion:(dispatch_block_t)completion;
-
-+(BOOL)userHasAccessToFacebook;
-+(BOOL)userHasAccessToTwitter;
+- (void) uploadTwitterVideo:(NSData*)videoData withCompletion:(CbUploadComplete)completion;
 
 @end

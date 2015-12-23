@@ -28,39 +28,17 @@
     }
     [self addText:@"userHasAccessToTwitter"];
     
-    NSString * path = [[NSBundle mainBundle] pathForResource:@"sample_mpeg4" ofType:@"mp4"];
+    NSString * path = [[NSBundle mainBundle] pathForResource:@"pass" ofType:@"mp4"];
+//    NSString * path = [[NSBundle mainBundle] pathForResource:@"fail_finalize" ofType:@"mp4"];
+    
     NSData *videoData = [NSData dataWithContentsOfFile:path];
     [self addText:[NSString stringWithFormat:@"Video size: %d KB", ([videoData length] / 1024)]];
-    
-    ACAccountStore *account = [[ACAccountStore alloc] init];
-    ACAccountType *accountType = [account accountTypeWithAccountTypeIdentifier:
-                                  ACAccountTypeIdentifierTwitter];
-    [account requestAccessToAccountsWithType:accountType options:nil
-                                  completion:^(BOOL granted, NSError *error)
+
+    [[SocialVideoHelper instance] uploadTwitterVideo:videoData withCompletion:^(NSString* errorString)
     {
-        if (granted == YES)
-        {
-            NSArray *arrayOfAccounts = [account accountsWithAccountType:accountType];
-            
-            if ([arrayOfAccounts count] > 0)
-            {
-                ACAccount *twitterAccount = [arrayOfAccounts lastObject];
-                if (twitterAccount == nil) {
-                    [self addText:@"ACAccount = nil"];
-                    return;
-                }
-                [self addText:[NSString stringWithFormat:@"Type: %@\nDesc: %@\nUsername: %@\nFull name: %@\nCredential: %@",
-                      twitterAccount.accountType,
-                      twitterAccount.accountDescription,
-                      twitterAccount.username,
-                      twitterAccount.userFullName,
-                      twitterAccount.credential]];
-                
-                [SocialVideoHelper uploadTwitterVideo:videoData account:twitterAccount withCompletion:^{
-                    [self addText:@"Complete"];
-                }];
-            }
-        }
+        if (errorString == nil)
+            [self addText:@"Complete"];
+        else [self addText:errorString];
     }];
 }
 

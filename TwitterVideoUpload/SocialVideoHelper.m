@@ -1,18 +1,46 @@
 //
 //  SocialVideoHelper.m
 //
-//  Created by ryu-ushin on 6/5/15.
-//  Copyright (c) 2015 ryu-ushin. All rights reserved.
+//  Created by Trung Vo on 12/22/15.
+//  Copyright (c) 2015 Trung Vo. All rights reserved.
 //
 
 #import "SocialVideoHelper.h"
 
 
+@interface SocialVideoHelper ()
+{
+    NSData* videoData;
+    NSString* mediaID;
+    NSURL* twitterPostURL;
+    NSURL* twitterUpdateURL;
+    CbUploadComplete completion;
+    
+    NSDictionary* paramList[4];
+}
+
+@property (nonatomic) ACAccount* account;
+@property (nonatomic) NSString* statusContent;
+
+@end
+
+
 @implementation SocialVideoHelper
 
-+(BOOL)userHasAccessToFacebook
-{
-    return [SLComposeViewController isAvailableForServiceType:SLServiceTypeFacebook];
+static SocialVideoHelper *sInstance = nil;
+
++ (SocialVideoHelper*) instance {
+    if (sInstance == nil) {
+        sInstance = [SocialVideoHelper new];
+        [sInstance initialize];
+    }
+    return sInstance;
+}
+
+- (void) initialize {
+    twitterPostURL = [[NSURL alloc] initWithString:@"https://upload.twitter.com/1.1/media/upload.json"];
+    twitterUpdateURL = [[NSURL alloc] initWithString:@"https://api.twitter.com/1.1/statuses/update.json"];
+    self.statusContent = @"#TwitterVideo https://github.com/mtrung/TwitterVideoUpload";
 }
 
 +(BOOL)userHasAccessToTwitter
@@ -20,199 +48,109 @@
     return [SLComposeViewController isAvailableForServiceType:SLServiceTypeTwitter];
 }
 
-+(void)uploadFacebookVideo:(NSData*)videoData account:(ACAccount*)account withCompletion:(dispatch_block_t)completion{
-    
-    NSURL *facebookPostURL = [[NSURL alloc] initWithString:@"https://graph-video.facebook.com/v2.3/me/videos"];
-    
-    NSDictionary *postParams = @{
-                                 @"access_token": account.credential.oauthToken,
-                                 @"upload_phase" : @"start",
-                                 @"file_size" : [NSNumber numberWithInteger: videoData.length].stringValue
-                                 };
-    
-    SLRequest *request = [SLRequest requestForServiceType:SLServiceTypeFacebook requestMethod:SLRequestMethodPOST URL:facebookPostURL parameters:postParams];
-    request.account = account;
-    
-    [request performRequestWithHandler:^(NSData *responseData, NSHTTPURLResponse *urlResponse, NSError *error) {
-        NSLog(@"HTTP Response: %li, responseData: %@", (long)[urlResponse statusCode], [[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding]);
-        if (error) {
-            NSLog(@"There was an error:%@", [error localizedDescription]);
-        } else {
-            NSMutableDictionary *returnedData = [NSJSONSerialization JSONObjectWithData:responseData options:NSJSONReadingMutableContainers error:&error];
-            
-            NSLog(@"stage1 dic -> %@", returnedData);
-            
-            NSString *upload_session_id = returnedData[@"upload_session_id"];
-            [SocialVideoHelper facebookVideoStage2:videoData upload_session_id:upload_session_id account:account withCompletion:completion];
-        }
-    }];
-    
-}
-
-+(void)facebookVideoStage2:(NSData*)videoData upload_session_id:(NSString *)upload_session_id account:(ACAccount*)account withCompletion:(dispatch_block_t)completion{
-    
-    NSURL *facebookPostURL = [[NSURL alloc] initWithString:@"https://graph-video.facebook.com/v2.3/me/videos"];
-    
-    NSDictionary *postParams = @{
-                                 @"access_token": account.credential.oauthToken,
-                                 @"upload_phase" : @"transfer",
-                                 @"start_offset" : @"0",
-                                 @"upload_session_id" : upload_session_id
-                                 };
-    
-    SLRequest *request = [SLRequest requestForServiceType:SLServiceTypeFacebook requestMethod:SLRequestMethodPOST URL:facebookPostURL parameters:postParams];
-    request.account = account;
-    
-    [request addMultipartData:videoData withName:@"video_file_chunk" type:@"video/mp4" filename:@"video"];
-    
-    [request performRequestWithHandler:^(NSData *responseData, NSHTTPURLResponse *urlResponse, NSError *error) {
-        NSLog(@"HTTP Response: %li, responseData: %@", (long)[urlResponse statusCode], [[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding]);
-        if (error) {
-            NSLog(@"There was an error:%@", [error localizedDescription]);
-        } else {
-            NSMutableDictionary *returnedData = [NSJSONSerialization JSONObjectWithData:responseData options:NSJSONReadingMutableContainers error:&error];
-            
-            NSLog(@"stage2 dic -> %@", returnedData);
-            
-            [SocialVideoHelper facebookVideoStage3:videoData upload_session_id:upload_session_id account:account withCompletion:completion];
-        }
-    }];
+- (void) getAccount {
+    ACAccountStore *account = [[ACAccountStore alloc] init];
+    ACAccountType *accountType = [account accountTypeWithAccountTypeIdentifier:
+                                  ACAccountTypeIdentifierTwitter];
+    [account requestAccessToAccountsWithType:accountType options:nil
+                                  completion:^(BOOL granted, NSError *error)
+     {
+         if (granted == YES)
+         {
+             NSArray *arrayOfAccounts = [account accountsWithAccountType:accountType];
+             if ([arrayOfAccounts count] > 0)
+             {
+                 ACAccount *twitterAccount = [arrayOfAccounts lastObject];
+                 if (twitterAccount == nil) {
+                     NSLog(@"ACAccount = nil");
+                     return;
+                 }
+                 
+                 self.account = twitterAccount;
+                 [self sendCommand:0];
+             }
+         }
+     }];
 }
 
 
-+(void)facebookVideoStage3:(NSData*)videoData upload_session_id:(NSString *)upload_session_id account:(ACAccount*)account withCompletion:(dispatch_block_t)completion{
+- (void) uploadTwitterVideo:(NSData*)videoData1 withCompletion:(CbUploadComplete)completion1 {
     
-    NSURL *facebookPostURL = [[NSURL alloc] initWithString:@"https://graph-video.facebook.com/v2.3/me/videos"];
+    completion = completion1;
+    videoData = videoData1;
     
-    NSDictionary *postParams = @{
-                                 @"access_token": account.credential.oauthToken,
-                                 @"upload_phase" : @"finish",
-                                 @"upload_session_id" : upload_session_id
-                                 };
+    paramList[0] = @{@"command": @"INIT",
+                     @"total_bytes" : [NSNumber numberWithInteger: videoData.length].stringValue,
+                     @"media_type" : @"video/mp4"
+                     };
     
-    SLRequest *request = [SLRequest requestForServiceType:SLServiceTypeFacebook requestMethod:SLRequestMethodPOST URL:facebookPostURL parameters:postParams];
-    request.account = account;
-    
-    [request performRequestWithHandler:^(NSData *responseData, NSHTTPURLResponse *urlResponse, NSError *error) {
-        NSLog(@"HTTP Response: %li, responseData: %@", (long)[urlResponse statusCode], [[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding]);
-        if (error) {
-            NSLog(@"There was an error:%@", [error localizedDescription]);
-        } else {
-            NSMutableDictionary *returnedData = [NSJSONSerialization JSONObjectWithData:responseData options:NSJSONReadingMutableContainers error:&error];
-            NSLog(@"dic -> %@", returnedData);
-            
-            if ([urlResponse statusCode] == 200){
-                NSLog(@"upload success !");
-                DispatchMainThread(^(){completion();});
-            }
-        }
-    }];
+    if (self.account != nil) [self sendCommand:0];
+    else [self getAccount];
 }
 
-
-
-+(void)uploadTwitterVideo:(NSData*)videoData account:(ACAccount*)account withCompletion:(dispatch_block_t)completion{
+- (void) sendCommand:(int)i {
     
-    NSURL *twitterPostURL = [[NSURL alloc] initWithString:@"https://upload.twitter.com/1.1/media/upload.json"];
+    NSDictionary* postParams = paramList[i];
     
-    NSDictionary *postParams = @{@"command": @"INIT",
-                                @"total_bytes" : [NSNumber numberWithInteger: videoData.length].stringValue,
-                                @"media_type" : @"video/mp4"
-                                };
-    
-    SLRequest *request = [SLRequest requestForServiceType:SLServiceTypeTwitter requestMethod:SLRequestMethodPOST URL:twitterPostURL parameters:postParams];
-    request.account = account;
-    NSLog(@"\n1. SLRequest %@", request.preparedURLRequest.allHTTPHeaderFields);
-    
-    [request performRequestWithHandler:^(NSData *responseData, NSHTTPURLResponse *urlResponse, NSError *error) {
-        NSLog(@"Stage1 HTTP Response: %li, responseData: %@", (long)[urlResponse statusCode], [[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding]);
-        
-        if (error) {
-            NSLog(@"There was an error:%@", [error localizedDescription]);
-        } else {
-            NSMutableDictionary *returnedData = [NSJSONSerialization JSONObjectWithData:responseData options:NSJSONReadingMutableContainers error:&error];
-            
-            NSString *mediaID = [NSString stringWithFormat:@"%@", [returnedData valueForKey:@"media_id_string"]];
-            NSLog(@"stage one success, mediaID -> %@", mediaID);
-            
-            [SocialVideoHelper tweetVideoStage2:videoData mediaID:mediaID account:account withCompletion:completion];
-        }
-    }];
-}
-
-+(void)tweetVideoStage2:(NSData*)videoData mediaID:(NSString *)mediaID account:(ACAccount*)account withCompletion:(dispatch_block_t)completion{
-    
-    NSURL *twitterPostURL = [[NSURL alloc] initWithString:@"https://upload.twitter.com/1.1/media/upload.json"];
-    NSDictionary *postParams = @{@"command": @"APPEND",
-                                 @"media_id" : mediaID,
-                                 @"segment_index" : @"0",
-                                 };
-    
-    SLRequest *postRequest = [SLRequest requestForServiceType:SLServiceTypeTwitter requestMethod:SLRequestMethodPOST URL:twitterPostURL parameters:postParams];
-    postRequest.account = account;
-    [postRequest addMultipartData:videoData withName:@"media" type:@"video/mp4" filename:@"sample_mpge4.mp4"];
-    
-    NSLog(@"\n2. SLRequest %@", postRequest.preparedURLRequest.allHTTPHeaderFields);
-
-    [postRequest performRequestWithHandler:^(NSData *responseData, NSHTTPURLResponse *urlResponse, NSError *error) {
-        NSLog(@"Stage2 HTTP Response: %li, %@", (long)[urlResponse statusCode], [[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding]);
-        
-        if (!error) {
-            [SocialVideoHelper tweetVideoStage3:videoData mediaID:mediaID account:account withCompletion:completion];
-        }
-        else {
-            NSLog(@"Error stage 2 - %@", error);
-        }
-    }];
-}
-
-+(void)tweetVideoStage3:(NSData*)videoData mediaID:(NSString *)mediaID account:(ACAccount*)account withCompletion:(dispatch_block_t)completion{
-    
-    NSURL *twitterPostURL = [[NSURL alloc] initWithString:@"https://upload.twitter.com/1.1/media/upload.json"];
-    
-    NSDictionary *postParams = @{@"command": @"FINALIZE",
-                               @"media_id" : mediaID };
-    
-    SLRequest *postRequest = [SLRequest requestForServiceType:SLServiceTypeTwitter requestMethod:SLRequestMethodPOST URL:twitterPostURL parameters:postParams];
+    SLRequest *request = [SLRequest requestForServiceType:SLServiceTypeTwitter requestMethod:SLRequestMethodPOST
+                                                      URL:((i<3)?twitterPostURL:twitterUpdateURL) parameters:postParams];
     // Set the account and begin the request.
-    postRequest.account = account;
-    NSLog(@"\n3. SLRequest %@", postRequest.preparedURLRequest.allHTTPHeaderFields);
-
+    request.account = self.account;
     
-    [postRequest performRequestWithHandler:^(NSData *responseData, NSHTTPURLResponse *urlResponse, NSError *error) {
-        NSLog(@"Stage3 HTTP Response: %li, %@", (long)[urlResponse statusCode], [[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding]);
+    if (i == 1) {
+        [request addMultipartData:videoData withName:@"media" type:@"video/mp4" filename:@"video"];
+    }
+    
+    NSLog(@"%d >> ", i);
+          //,request.preparedURLRequest.allHTTPHeaderFields);
+
+    [request performRequestWithHandler:^(NSData *responseData, NSHTTPURLResponse *urlResponse, NSError *error) {
+        
+        NSString* statusStr = [NSString stringWithFormat:@"HTTP status %d %@", [urlResponse statusCode], [NSHTTPURLResponse localizedStringForStatusCode:[urlResponse statusCode]]];
+        NSLog(@"%d << %@", i, statusStr);
+        
+        //NSLog(@"%@", [[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding]);
+        
         if (error) {
-            NSLog(@"Error stage 3 - %@", error);
+            NSLog(@"Error: %@", error);
         } else {
-            [SocialVideoHelper tweetVideoStage4:videoData mediaID:mediaID account:account withCompletion:completion];
-        }
-    }];
-}
-
-+(void)tweetVideoStage4:(NSData*)videoData mediaID:(NSString *)mediaID account:(ACAccount*)account withCompletion:(dispatch_block_t)completion{
-    NSURL *twitterPostURL = [[NSURL alloc] initWithString:@"https://api.twitter.com/1.1/statuses/update.json"];
-     NSString *statusContent = [NSString stringWithFormat:@"#SocialVideoHelper# https://github.com/liu044100/SocialVideoHelper"];
-
-    // Set the parameters for the third twitter video request.
-    NSDictionary *postParams = @{@"status": statusContent,
-                               @"media_ids" : @[mediaID]};
-    
-    SLRequest *postRequest = [SLRequest requestForServiceType:SLServiceTypeTwitter requestMethod:SLRequestMethodPOST URL:twitterPostURL parameters:postParams];
-    postRequest.account = account;
-    NSLog(@"\n4. SLRequest %@", postRequest.preparedURLRequest.allHTTPHeaderFields);
-    
-    [postRequest performRequestWithHandler:^(NSData *responseData, NSHTTPURLResponse *urlResponse, NSError *error) {
-        NSLog(@"Stage4 HTTP Response: %li, %@", (long)[urlResponse statusCode], [[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding]);
-        if (error) {
-            NSLog(@"Error stage 4 - %@", error);
-        } else {
-            if ([urlResponse statusCode] == 200){
-                NSLog(@"upload success !");
-                DispatchMainThread(^(){completion();});
+            BOOL is2XX = ([urlResponse statusCode] / 100) == 2;
+            if (!is2XX) {
+                NSMutableDictionary *returnedData = [NSJSONSerialization JSONObjectWithData:responseData options:NSJSONReadingMutableContainers error:&error];
+                NSString* errStr = (returnedData) ? returnedData[@"error"] : statusStr;
+                DispatchMainThread(^(){completion(errStr);});
+                return;
             }
+            
+            if (i == 0) {
+                NSMutableDictionary *returnedData = [NSJSONSerialization JSONObjectWithData:responseData options:NSJSONReadingMutableContainers error:&error];
+                
+                mediaID = [NSString stringWithFormat:@"%@", [returnedData valueForKey:@"media_id_string"]];
+                NSLog(@"mediaID = %@", mediaID);
+                
+                //  ...since we have mediaID, we now can populate the rest of paramList
+                paramList[1] = @{@"command": @"APPEND",
+                                 @"media_id" : mediaID,
+                                 @"segment_index" : @"0"
+                                 };
+                
+                paramList[2] = @{@"command": @"FINALIZE",
+                                 @"media_id" : mediaID };
+                
+                paramList[3] = @{@"status": self.statusContent,
+                                 @"media_ids" : @[mediaID]};
+            }
+            else if (i == 3) {
+                if ([urlResponse statusCode] == 200 && completion != nil){
+                    NSLog(@"upload success !");
+                    DispatchMainThread(^(){completion(nil);});
+                }
+                return;
+            }
+            
+            [self sendCommand:i+1];
         }
     }];
-    
 }
 
 @end
