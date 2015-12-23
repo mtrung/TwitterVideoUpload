@@ -28,7 +28,7 @@
     }
     [self addText:@"userHasAccessToTwitter"];
     
-    NSString * path = [[NSBundle mainBundle] pathForResource:@"pass" ofType:@"mp4"];
+    NSString * path = [[NSBundle mainBundle] pathForResource:@"rxmedsaver_app_intro_video" ofType:@"mp4"];
 //    NSString * path = [[NSBundle mainBundle] pathForResource:@"fail_finalize" ofType:@"mp4"];
     
     NSData *videoData = [NSData dataWithContentsOfFile:path];
