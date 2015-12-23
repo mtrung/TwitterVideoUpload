@@ -15,9 +15,13 @@ typedef void(^CbUploadComplete)(NSString* errStr);
 
 @interface SocialVideoHelper : NSObject
 
+@property (nonatomic) NSString* statusContent;
+@property (nonatomic, readonly) NSString* videoFileName;
+
 + (BOOL) userHasAccessToTwitter;
 + (SocialVideoHelper*) instance;
 
-- (void) uploadTwitterVideo:(NSData*)videoData withCompletion:(CbUploadComplete)completion;
+- (BOOL) setVideo:(NSString*)videoFileName;
+- (BOOL) uploadTwitterVideo:(CbUploadComplete)completion;
 
 @end

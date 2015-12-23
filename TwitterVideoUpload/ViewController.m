@@ -22,24 +22,24 @@
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
     
-    if ([SocialVideoHelper userHasAccessToTwitter] == FALSE) {
-        [self addText:@"userHasAccessToTwitter: No"];
-        return;
+    [SocialVideoHelper instance].statusContent = @"#TwitterVideo https://github.com/mtrung/TwitterVideoUpload";
+    
+    BOOL status = [[SocialVideoHelper instance] setVideo:@"rxmedsaver_app_intro_video"];
+    if (status == FALSE) {
+        [self addText:@"Failed reading video file"];
     }
-    [self addText:@"userHasAccessToTwitter"];
     
-    NSString * path = [[NSBundle mainBundle] pathForResource:@"rxmedsaver_app_intro_video" ofType:@"mp4"];
-//    NSString * path = [[NSBundle mainBundle] pathForResource:@"fail_finalize" ofType:@"mp4"];
-    
-    NSData *videoData = [NSData dataWithContentsOfFile:path];
-    [self addText:[NSString stringWithFormat:@"Video size: %d KB", ([videoData length] / 1024)]];
-
-    [[SocialVideoHelper instance] uploadTwitterVideo:videoData withCompletion:^(NSString* errorString)
+    status = [[SocialVideoHelper instance] uploadTwitterVideo:^(NSString* errorString)
     {
         if (errorString == nil)
             [self addText:@"Complete"];
         else [self addText:errorString];
     }];
+    
+    
+    if (status == FALSE) {
+        [self addText:@"Failed pre-check"];
+    }
 }
 
 - (void) addText:(NSString*)str {

@@ -20,7 +20,6 @@
 }
 
 @property (nonatomic) ACAccount* account;
-@property (nonatomic) NSString* statusContent;
 
 @end
 
@@ -73,17 +72,50 @@ static SocialVideoHelper *sInstance = nil;
      }];
 }
 
-/**
- upload video
- get twitter account credential if not previously retrieved
- */
-- (void) uploadTwitterVideo:(NSData*)videoData1 withCompletion:(CbUploadComplete)completion1 {
+- (BOOL) setVideo:(NSString *)videoFileName {
     
-    completion = completion1;
-    videoData = videoData1;
+    if (videoFileName == nil || videoFileName.length == 0) {
+        NSLog(@"Video file is not set");
+        return FALSE;
+    }
+    _videoFileName = videoFileName;
+    
+    NSString *path = [[NSBundle mainBundle] pathForResource:self.videoFileName ofType:@"mp4"];
+    if (path == nil) {
+        NSLog(@"File is not found");
+        return FALSE;
+    }
+    
+    videoData = [NSData dataWithContentsOfFile:path];
+    if (videoData == nil) {
+        NSLog(@"Error while reading file");
+        return FALSE;
+    }
     
     NSString* sizeStr = @(videoData.length).stringValue;
     NSLog(@"Video size: %@ bytes", sizeStr);
+    return TRUE;
+}
+
+/**
+ uploadTwitterVideo
+ Automatically geting twitter account credential if not previously retrieved.
+ Return FALSE if failed pre-check.
+ */
+- (BOOL) uploadTwitterVideo:(CbUploadComplete)completionBlock {
+    
+    if ([SocialVideoHelper userHasAccessToTwitter] == FALSE) {
+        NSLog(@"No Twitter account. Please add twitter account to Settings app.");
+        return FALSE;
+    }
+
+    completion = completionBlock;
+    
+    if (videoData == nil) {
+        NSLog(@"No video data set");
+        return FALSE;
+    }
+    NSString* sizeStr = @(videoData.length).stringValue;
     
     [paramList removeAllObjects];
     paramList[0] = @{@"command": @"INIT",
@@ -93,6 +125,7 @@ static SocialVideoHelper *sInstance = nil;
     
     if (self.account != nil) [self sendCommand:0];
     else [self getAccount:TRUE];
+    return TRUE;
 }
 
 /* Standard success flow:
