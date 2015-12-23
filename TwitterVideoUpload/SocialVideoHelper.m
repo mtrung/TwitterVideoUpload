@@ -155,7 +155,14 @@ static SocialVideoHelper *sInstance = nil;
     // Set the account and begin the request.
     request.account = self.account;
     
-    if (i >= 1 && i < paramList.count-2) {
+   
+    NSString* cmdStr = postParams[@"command"];
+    if (cmdStr == nil) cmdStr = @"";
+    NSLog(@"%d >> %@", i, cmdStr);
+    //,request.preparedURLRequest.allHTTPHeaderFields);
+
+    //  ...handle chunk upload
+    if ([cmdStr isEqualToString:@"APPEND"]) {
         
         NSData* videoChunk;
         
@@ -167,32 +174,37 @@ static SocialVideoHelper *sInstance = nil;
                 range.length = videoData.length-1 - range.location;
             }
             videoChunk = [videoData subdataWithRange:range];
-            NSLog(@"segment_index %d: loc=%d len=%d maxPos=%d", segment_index, range.location, range.length, maxPos);
+            NSLog(@"%d: segment_index %d: loc=%d len=%d", i, segment_index, range.location, range.length);
         }
         else videoChunk = videoData;
         
         [request addMultipartData:videoChunk withName:@"media" type:@"video/mp4" filename:@"video"];
     }
     
-    NSString* cmdStr = postParams[@"command"];
-    if (cmdStr == nil) cmdStr = @"";
-    NSLog(@"%d >> %@", i, cmdStr);
-    //,request.preparedURLRequest.allHTTPHeaderFields);
 
     [request performRequestWithHandler:^(NSData *responseData, NSHTTPURLResponse *urlResponse, NSError *error) {
         
         NSString* statusStr = [NSString stringWithFormat:@"HTTP status %d %@", [urlResponse statusCode], [NSHTTPURLResponse localizedStringForStatusCode:[urlResponse statusCode]]];
         NSLog(@"%d << %@: %@", i, cmdStr, statusStr);
-        
         //NSLog(@"%@", [[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding]);
         
         if (error) {
             NSLog(@"Error: %@", error);
         } else {
+            
+            //  ...must return 2XX status code; if not, stop & return error
             BOOL is2XX = ([urlResponse statusCode] / 100) == 2;
             if (!is2XX) {
+                NSString* respStr = [[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding];
+                NSLog(@"%@", respStr);
+
+                NSString* errStr = statusStr;
+                
                 NSMutableDictionary *returnedData = [NSJSONSerialization JSONObjectWithData:responseData options:NSJSONReadingMutableContainers error:&error];
-                NSString* errStr = (returnedData && returnedData[@"error"]) ? returnedData[@"error"] : statusStr;
+                if (returnedData && (returnedData[@"error"] || returnedData[@"errors"])) {
+                    errStr = respStr;
+                }
+                
                 DispatchMainThread(^(){completion(errStr);});
                 return;
             }
@@ -205,33 +217,34 @@ static SocialVideoHelper *sInstance = nil;
                 
                 //  ...since we have mediaID, we now can populate the rest of paramList
                 
+                int cmdIndex = 0;
                 int segment = 0;
                 for (; segment*MAX_VIDEO_SIZE < videoData.length; segment++) {
-                    paramList[segment+1] = @{@"command": @"APPEND",
+                        paramList[++cmdIndex] = @{@"command": @"APPEND",
                                             @"media_id" : mediaID,
                                             @"segment_index" : @(segment).stringValue
                                             };
                 }
-
-                int cmdIndex = segment;
-//                paramList[cmdIndex] = @{@"command": @"APPEND",
-//                                 @"media_id" : mediaID,
-//                                 @"segment_index" : @(cmdIndex-1).stringValue
-//                                 };
                 
                 paramList[++cmdIndex] = @{@"command": @"FINALIZE",
                                  @"media_id" : mediaID };
                 
                 paramList[++cmdIndex] = @{@"status": self.statusContent,
                                  @"media_ids" : @[mediaID]};
+                
+                //  ...listed in API but not sure if we need this command
+//                paramList[++cmdIndex] = @{@"command": @"STATUS",
+//                                          @"media_id" : mediaID
+//                                          };
             }
-            else if (i == 3) {
+            else if (i == paramList.count-1) {
                 if (completion != nil){
-                    NSLog(@"upload success !");
                     DispatchMainThread(^(){completion(nil);});
                 }
                 return;
             }
+            
+            if (i+1 >= paramList.count) return;
             
             [self sendCommand:i+1];
         }
