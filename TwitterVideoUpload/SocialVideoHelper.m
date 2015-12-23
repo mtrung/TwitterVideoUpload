@@ -16,7 +16,7 @@
     NSURL* twitterUpdateURL;
     CbUploadComplete completion;
     
-    NSDictionary* paramList[4];
+    NSMutableArray* paramList;
 }
 
 @property (nonatomic) ACAccount* account;
@@ -41,6 +41,7 @@ static SocialVideoHelper *sInstance = nil;
     twitterPostURL = [[NSURL alloc] initWithString:@"https://upload.twitter.com/1.1/media/upload.json"];
     twitterUpdateURL = [[NSURL alloc] initWithString:@"https://api.twitter.com/1.1/statuses/update.json"];
     self.statusContent = @"#TwitterVideo https://github.com/mtrung/TwitterVideoUpload";
+    paramList = [NSMutableArray arrayWithCapacity:4];
 }
 
 +(BOOL)userHasAccessToTwitter
@@ -48,18 +49,15 @@ static SocialVideoHelper *sInstance = nil;
     return [SLComposeViewController isAvailableForServiceType:SLServiceTypeTwitter];
 }
 
-- (void) getAccount {
+- (void) getAccount:(BOOL)toSendVideo {
     ACAccountStore *account = [[ACAccountStore alloc] init];
-    ACAccountType *accountType = [account accountTypeWithAccountTypeIdentifier:
-                                  ACAccountTypeIdentifierTwitter];
+    ACAccountType *accountType = [account accountTypeWithAccountTypeIdentifier:ACAccountTypeIdentifierTwitter];
     [account requestAccessToAccountsWithType:accountType options:nil
                                   completion:^(BOOL granted, NSError *error)
      {
-         if (granted == YES)
-         {
+         if (granted == YES) {
              NSArray *arrayOfAccounts = [account accountsWithAccountType:accountType];
-             if ([arrayOfAccounts count] > 0)
-             {
+             if ([arrayOfAccounts count] > 0) {
                  ACAccount *twitterAccount = [arrayOfAccounts lastObject];
                  if (twitterAccount == nil) {
                      NSLog(@"ACAccount = nil");
@@ -67,28 +65,53 @@ static SocialVideoHelper *sInstance = nil;
                  }
                  
                  self.account = twitterAccount;
-                 [self sendCommand:0];
+                 
+                 if (toSendVideo && paramList.count > 0)
+                     [self sendCommand:0];
              }
          }
      }];
 }
 
-
+/**
+ upload video
+ get twitter account credential if not previously retrieved
+ */
 - (void) uploadTwitterVideo:(NSData*)videoData1 withCompletion:(CbUploadComplete)completion1 {
     
     completion = completion1;
     videoData = videoData1;
     
+    NSString* sizeStr = @(videoData.length).stringValue;
+    NSLog(@"Video size: %@ bytes", sizeStr);
+    
+    [paramList removeAllObjects];
     paramList[0] = @{@"command": @"INIT",
-                     @"total_bytes" : [NSNumber numberWithInteger: videoData.length].stringValue,
+                     @"total_bytes" : sizeStr,
                      @"media_type" : @"video/mp4"
                      };
     
     if (self.account != nil) [self sendCommand:0];
-    else [self getAccount];
+    else [self getAccount:TRUE];
 }
 
+/* Standard success flow:
+    0 >> INIT
+    0 << INIT: HTTP status 202 accepted
+    mediaID = 679712963431804928
+    1 >> APPEND
+    1 << APPEND: HTTP status 204 no content
+    2 >> FINALIZE
+    2 << FINALIZE: HTTP status 201 created
+    3 >>
+    3 << : HTTP status 200 no error
+ */
 - (void) sendCommand:(int)i {
+    
+    if (i >= paramList.count) {
+        NSLog(@"Invalid command index %d", i);
+        return;
+    }
     
     NSDictionary* postParams = paramList[i];
     
@@ -101,13 +124,15 @@ static SocialVideoHelper *sInstance = nil;
         [request addMultipartData:videoData withName:@"media" type:@"video/mp4" filename:@"video"];
     }
     
-    NSLog(@"%d >> ", i);
-          //,request.preparedURLRequest.allHTTPHeaderFields);
+    NSString* cmdStr = postParams[@"command"];
+    if (cmdStr == nil) cmdStr = @"";
+    NSLog(@"%d >> %@", i, cmdStr);
+    //,request.preparedURLRequest.allHTTPHeaderFields);
 
     [request performRequestWithHandler:^(NSData *responseData, NSHTTPURLResponse *urlResponse, NSError *error) {
         
         NSString* statusStr = [NSString stringWithFormat:@"HTTP status %d %@", [urlResponse statusCode], [NSHTTPURLResponse localizedStringForStatusCode:[urlResponse statusCode]]];
-        NSLog(@"%d << %@", i, statusStr);
+        NSLog(@"%d << %@: %@", i, cmdStr, statusStr);
         
         //NSLog(@"%@", [[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding]);
         
@@ -129,19 +154,21 @@ static SocialVideoHelper *sInstance = nil;
                 NSLog(@"mediaID = %@", mediaID);
                 
                 //  ...since we have mediaID, we now can populate the rest of paramList
-                paramList[1] = @{@"command": @"APPEND",
+                
+                int cmdIndex = 1;
+                paramList[cmdIndex] = @{@"command": @"APPEND",
                                  @"media_id" : mediaID,
-                                 @"segment_index" : @"0"
+                                 @"segment_index" : @(cmdIndex-1).stringValue
                                  };
                 
-                paramList[2] = @{@"command": @"FINALIZE",
+                paramList[++cmdIndex] = @{@"command": @"FINALIZE",
                                  @"media_id" : mediaID };
                 
-                paramList[3] = @{@"status": self.statusContent,
+                paramList[++cmdIndex] = @{@"status": self.statusContent,
                                  @"media_ids" : @[mediaID]};
             }
             else if (i == 3) {
-                if ([urlResponse statusCode] == 200 && completion != nil){
+                if (completion != nil){
                     NSLog(@"upload success !");
                     DispatchMainThread(^(){completion(nil);});
                 }
