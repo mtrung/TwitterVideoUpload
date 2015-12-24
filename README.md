@@ -24,3 +24,6 @@ Light-weight share/upload video to Twitter for iOS
 - Twitter video requirement: https://dev.twitter.com/rest/public/uploading-media#videorecs.
 - FINALIZE command verifies video file per Twitter video requirement before completing the upload.
 - If you get "HTTP status 400 bad request" with response data having "Invalid or unsupported media, Reason: UnsupportedMedia." error after sending FINALIZE command, you need to verify your video file with Twitter video requirement.
+
+# License
+TwitterVideoUpload is available under the MIT license. See the LICENSE file for more info.
