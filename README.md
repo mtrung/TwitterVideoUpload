@@ -10,9 +10,10 @@ Light-weight share/upload video to Twitter for iOS
 - Copy 2 files TwitterVideoUpload.h and .m to your project.
 - Add 2 lines below to your view controller:
 
-    [[TwitterVideoUpload instance] setVideo:filename];
-    [[TwitterVideoUpload instance] upload:^(NSString* errorString) { ... }];
-
+```Objective-C
+[[TwitterVideoUpload instance] setVideo:filename];
+[[TwitterVideoUpload instance] upload:^(NSString* errorString) { ... }];
+```
 
 # Notes
 - Twitter username + password must be provided to iOS Settings app
