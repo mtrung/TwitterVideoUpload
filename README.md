@@ -1,8 +1,8 @@
 # Overview
 Light-weight share/upload video to Twitter for iOS
 
-- Support > 5MB video file via chunk upload
-- Retrieve user's Twitter account credential automatically
+- Support chunk upload for > 5MB video file
+- Built-in support for user's credential retrieval
 - Support tweet text along with video
 - Use Objective-C (Swift is TBD)
 - Use SLRequest from Apple's Social framework to keep things light. No need to add extra frameworks such as TwitterKit and Fabric.
