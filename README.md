@@ -2,16 +2,19 @@
 Light-weight share/upload video to Twitter for iOS
 
 - Support > 5MB video file via chunk upload
-- Objective-C (Swift is TBD)
+- Retrieve user's Twitter account credential automatically
+- Support tweet text along with video
+- Use Objective-C (Swift is TBD)
 - Use SLRequest from Apple's Social framework to keep things light. No need to add extra frameworks such as TwitterKit and Fabric.
 - Use new Twitter Uploading Media REST API, which was released in May 2015 https://blog.twitter.com/2015/rest-api-now-supports-native-video-upload.
 - Twitter Uploading Media REST API document: https://dev.twitter.com/rest/public/uploading-media.
 
 # Usage
 - Copy 2 files TwitterVideoUpload.h and .m to your project.
-- Add 2 lines below to your view controller:
+- Add 3 lines below to your view controller:
 
 ```Objective-C
+[TwitterVideoUpload instance].statusContent = @"...";
 [[TwitterVideoUpload instance] setVideo:filename];
 [[TwitterVideoUpload instance] upload:^(NSString* errorString) { ... }];
 ```

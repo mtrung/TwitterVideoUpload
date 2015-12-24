@@ -15,7 +15,11 @@ typedef void(^CbUploadComplete)(NSString* errStr);
 
 @interface TwitterVideoUpload : NSObject
 
+/**
+ * Tweet text sending along with video
+ */
 @property (nonatomic) NSString* statusContent;
+
 @property (nonatomic, readonly) NSString* videoFileName;
 
 + (BOOL) userHasAccessToTwitter;
