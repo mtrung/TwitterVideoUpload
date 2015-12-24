@@ -19,9 +19,25 @@ typedef void(^CbUploadComplete)(NSString* errStr);
 @property (nonatomic, readonly) NSString* videoFileName;
 
 + (BOOL) userHasAccessToTwitter;
+
 + (TwitterVideoUpload*) instance;
 
+/**
+ * Set video data for uploading
+ * This is convenient method: get file from main bundle to set
+ * Return FALSE if failed local validation
+ */
 - (BOOL) setVideo:(NSString*)videoFileName;
-- (BOOL) uploadTwitterVideo:(CbUploadComplete)completion;
+
+/**
+ * Set video data for uploading
+ * Return FALSE if failed local validation
+ */
+- (BOOL) setVideoData:(NSData *)vidData;
+
+/**
+ * main upload method
+ */
+- (BOOL) upload:(CbUploadComplete)completion;
 
 @end

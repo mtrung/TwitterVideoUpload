@@ -44,7 +44,7 @@
         return;
     }
     
-    status = [[TwitterVideoUpload instance] uploadTwitterVideo:^(NSString* errorString)
+    status = [[TwitterVideoUpload instance] upload:^(NSString* errorString)
               {
                   NSString* printStr = [NSString stringWithFormat:@"Share video %@: %@", filename,
                                         (errorString == nil) ? @"Success" : errorString];

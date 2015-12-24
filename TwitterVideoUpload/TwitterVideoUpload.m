@@ -48,8 +48,7 @@ static TwitterVideoUpload *sInstance = nil;
     paramList = [NSMutableArray arrayWithCapacity:4];
 }
 
-+(BOOL)userHasAccessToTwitter
-{
++ (BOOL) userHasAccessToTwitter {
     return [SLComposeViewController isAvailableForServiceType:SLServiceTypeTwitter];
 }
 
@@ -93,7 +92,12 @@ static TwitterVideoUpload *sInstance = nil;
         return FALSE;
     }
     
-    videoData = [NSData dataWithContentsOfFile:path];
+    return [self setVideoData:[NSData dataWithContentsOfFile:path]];
+}
+
+- (BOOL) setVideoData:(NSData *)vidData {
+
+    videoData = vidData;
     if (videoData == nil) {
         NSLog(@"Error while reading file");
         return FALSE;
@@ -116,7 +120,7 @@ static TwitterVideoUpload *sInstance = nil;
  Automatically geting twitter account credential if not previously retrieved.
  Return FALSE if failed pre-check.
  */
-- (BOOL) uploadTwitterVideo:(CbUploadComplete)completionBlock {
+- (BOOL) upload:(CbUploadComplete)completionBlock {
     
     if ([TwitterVideoUpload userHasAccessToTwitter] == FALSE) {
         NSLog(@"No Twitter account. Please add twitter account to Settings app.");
@@ -262,9 +266,7 @@ static TwitterVideoUpload *sInstance = nil;
                 }
                 return;
             }
-            
-            if (i+1 >= paramList.count) return;
-            
+                        
             //  ...send next command
             [self sendCommand:i+1];
         }
