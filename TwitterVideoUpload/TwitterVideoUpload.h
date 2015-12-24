@@ -1,5 +1,5 @@
 //
-//  SocialVideoHelper.h
+//  TwitterVideoUpload.h
 //
 //  Created by Trung Vo on 12/22/15.
 //  Copyright (c) 2015 Trung Vo. All rights reserved.
@@ -22,6 +22,13 @@ typedef void(^CbUploadComplete)(NSString* errStr);
 
 @property (nonatomic, readonly) NSString* videoFileName;
 
+/**
+ * User's twitter account
+ * If this property is nil, upload: will try to get account before uploading.
+ * If you want to get account manually, you can assign it to this property.
+ */
+@property (nonatomic) ACAccount* account;
+
 + (BOOL) userHasAccessToTwitter;
 
 + (TwitterVideoUpload*) instance;
@@ -40,8 +47,11 @@ typedef void(^CbUploadComplete)(NSString* errStr);
 - (BOOL) setVideoData:(NSData *)vidData;
 
 /**
- * main upload method
+ * Main upload method
+ * Once done, completionHandler will be called with errStr.
+ * If success, errStr will be nil.
+ * If failed, errStr will contain responseString.
  */
-- (BOOL) upload:(CbUploadComplete)completion;
+- (BOOL) upload:(CbUploadComplete)completionHandler;
 
 @end

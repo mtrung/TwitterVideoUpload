@@ -11,12 +11,21 @@ Light-weight share/upload video to Twitter for iOS
 
 # Usage
 - Copy 2 files TwitterVideoUpload.h and .m to your project.
-- Add 3 lines below to your view controller:
-
+- Add 2 lines below to your view controller:
 ```Objective-C
-[TwitterVideoUpload instance].statusContent = @"...";
 [[TwitterVideoUpload instance] setVideo:filename];
 [[TwitterVideoUpload instance] upload:^(NSString* errorString) { ... }];
+```
+-  If success, completionHandler's errStr will be nil. If failed, errStr will contain REST response string.
+- To add tweet text along with video:
+```Objective-C
+[TwitterVideoUpload instance].statusContent = @"...";
+```
+
+## Optional usage
+- By default (account property is nil), upload: will try to get account before uploading. Optional: if you want to obtain account (ACAccount obj) manually, you can set yours as below:
+```Objective-C
+[TwitterVideoUpload instance].account = aACAccountObj;
 ```
 
 # Notes

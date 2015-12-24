@@ -1,5 +1,5 @@
 //
-//  SocialVideoHelper.m
+//  TwitterVideoUpload.m
 //
 //  Created by Trung Vo on 12/22/15.
 //  Copyright (c) 2015 Trung Vo. All rights reserved.
@@ -14,12 +14,10 @@
     NSString* mediaID;
     NSURL* twitterPostURL;
     NSURL* twitterUpdateURL;
-    CbUploadComplete completion;
+    CbUploadComplete completionHandler;
     
     NSMutableArray* paramList;
 }
-
-@property (nonatomic) ACAccount* account;
 
 @end
 
@@ -120,14 +118,14 @@ static TwitterVideoUpload *sInstance = nil;
  Automatically geting twitter account credential if not previously retrieved.
  Return FALSE if failed pre-check.
  */
-- (BOOL) upload:(CbUploadComplete)completionBlock {
+- (BOOL) upload:(CbUploadComplete)completionHandlerBlock {
     
     if ([TwitterVideoUpload userHasAccessToTwitter] == FALSE) {
         NSLog(@"No Twitter account. Please add twitter account to Settings app.");
         return FALSE;
     }
 
-    completion = completionBlock;
+    completionHandler = completionHandlerBlock;
     
     if (videoData == nil) {
         NSLog(@"No video data set");
@@ -253,7 +251,9 @@ static TwitterVideoUpload *sInstance = nil;
                     errStr = respStr;
                 }
                 
-                DispatchMainThread(^(){completion(errStr);});
+                DispatchMainThread(^() {
+                    completionHandler(errStr);
+                });
                 return;
             }
             
@@ -261,8 +261,11 @@ static TwitterVideoUpload *sInstance = nil;
                 [self processInitResp:responseData];
             }
             else if (i == paramList.count-1) {
-                if (completion != nil){
-                    DispatchMainThread(^(){completion(nil);});
+                if (completionHandler != nil) {
+                    DispatchMainThread(^() {
+                        //  ...success: pass nil to errStr
+                        completionHandler(nil);
+                    });
                 }
                 return;
             }
