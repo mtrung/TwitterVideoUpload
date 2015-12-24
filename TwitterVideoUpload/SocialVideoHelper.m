@@ -36,6 +36,9 @@ static SocialVideoHelper *sInstance = nil;
     return sInstance;
 }
 
+#define VIDEO_CHUNK_SIZE 5000000 // 5*(1<<20)
+#define MAX_VIDEO_SIZE 15*(1<<20)
+
 - (void) initialize {
     twitterPostURL = [[NSURL alloc] initWithString:@"https://upload.twitter.com/1.1/media/upload.json"];
     twitterUpdateURL = [[NSURL alloc] initWithString:@"https://api.twitter.com/1.1/statuses/update.json"];
@@ -92,8 +95,13 @@ static SocialVideoHelper *sInstance = nil;
         return FALSE;
     }
     
-    NSString* sizeStr = @(videoData.length).stringValue;
-    NSLog(@"Video size: %@ bytes", sizeStr);
+    NSLog(@"Video size: %d bytes", videoData.length);
+    
+    if (videoData.length > MAX_VIDEO_SIZE) {
+        NSLog(@"Video is too big");
+        return FALSE;
+    }
+    
     return TRUE;
 }
 
@@ -128,7 +136,53 @@ static SocialVideoHelper *sInstance = nil;
     return TRUE;
 }
 
-#define MAX_VIDEO_SIZE (5 * (1 << 20))
+- (void) processInitResp:(NSData*)responseData {
+    NSError* error = nil;
+    NSMutableDictionary *returnedData = [NSJSONSerialization JSONObjectWithData:responseData
+                                                                        options:NSJSONReadingMutableContainers error:&error];
+    
+    mediaID = [NSString stringWithFormat:@"%@", [returnedData valueForKey:@"media_id_string"]];
+    NSLog(@"mediaID = %@", mediaID);
+    
+    //  ...since we have mediaID, we now can populate the rest of paramList
+    
+    int cmdIndex = 0;
+    int segment = 0;
+    for (; segment*VIDEO_CHUNK_SIZE < videoData.length; segment++) {
+        paramList[++cmdIndex] = @{@"command": @"APPEND",
+                                  @"media_id" : mediaID,
+                                  @"segment_index" : @(segment).stringValue
+                                  };
+    }
+    
+    paramList[++cmdIndex] = @{@"command": @"FINALIZE",
+                              @"media_id" : mediaID };
+    
+    paramList[++cmdIndex] = @{@"status": self.statusContent,
+                              @"media_ids" : @[mediaID]};
+}
+
+//  ...handle chunk upload
+- (void) addVideoChunk:(SLRequest*)request {
+    
+    NSData* videoChunk;
+    
+    if (videoData.length > VIDEO_CHUNK_SIZE) {
+        int segment_index = [request.parameters[@"segment_index"] intValue];
+        
+        NSRange range = NSMakeRange(segment_index * VIDEO_CHUNK_SIZE, VIDEO_CHUNK_SIZE);
+        int maxPos = NSMaxRange(range);
+        if (maxPos >= videoData.length) {
+            range.length = videoData.length - range.location;
+        }
+        videoChunk = [videoData subdataWithRange:range];
+        NSLog(@"\tsegment_index %d: loc=%d len=%d", segment_index, range.location, range.length);
+    } else {
+        videoChunk = videoData;
+    }
+    
+    [request addMultipartData:videoChunk withName:@"media" type:@"video/mp4" filename:@"video"];
+}
 
 /* Standard success flow:
     0 >> INIT
@@ -149,38 +203,22 @@ static SocialVideoHelper *sInstance = nil;
     }
     
     NSDictionary* postParams = paramList[i];
+    NSURL* url = (i == paramList.count-1 && i > 0) ? twitterUpdateURL : twitterPostURL;
     
     SLRequest *request = [SLRequest requestForServiceType:SLServiceTypeTwitter requestMethod:SLRequestMethodPOST
-                                                      URL:((i<3)?twitterPostURL:twitterUpdateURL) parameters:postParams];
-    // Set the account and begin the request.
+                                                      URL:url
+                                               parameters:postParams];
+    // Set the account
     request.account = self.account;
     
-   
     NSString* cmdStr = postParams[@"command"];
     if (cmdStr == nil) cmdStr = @"";
     NSLog(@"%d >> %@", i, cmdStr);
     //,request.preparedURLRequest.allHTTPHeaderFields);
 
-    //  ...handle chunk upload
     if ([cmdStr isEqualToString:@"APPEND"]) {
-        
-        NSData* videoChunk;
-        
-        if (videoData.length > MAX_VIDEO_SIZE) {
-            int segment_index = [postParams[@"segment_index"] intValue];
-            NSRange range = NSMakeRange(segment_index*MAX_VIDEO_SIZE, MAX_VIDEO_SIZE);
-            int maxPos = NSMaxRange(range);
-            if (maxPos >= videoData.length) {
-                range.length = videoData.length-1 - range.location;
-            }
-            videoChunk = [videoData subdataWithRange:range];
-            NSLog(@"%d: segment_index %d: loc=%d len=%d", i, segment_index, range.location, range.length);
-        }
-        else videoChunk = videoData;
-        
-        [request addMultipartData:videoChunk withName:@"media" type:@"video/mp4" filename:@"video"];
+        [self addVideoChunk:request];
     }
-    
 
     [request performRequestWithHandler:^(NSData *responseData, NSHTTPURLResponse *urlResponse, NSError *error) {
         
@@ -210,32 +248,7 @@ static SocialVideoHelper *sInstance = nil;
             }
             
             if (i == 0) {
-                NSMutableDictionary *returnedData = [NSJSONSerialization JSONObjectWithData:responseData options:NSJSONReadingMutableContainers error:&error];
-                
-                mediaID = [NSString stringWithFormat:@"%@", [returnedData valueForKey:@"media_id_string"]];
-                NSLog(@"mediaID = %@", mediaID);
-                
-                //  ...since we have mediaID, we now can populate the rest of paramList
-                
-                int cmdIndex = 0;
-                int segment = 0;
-                for (; segment*MAX_VIDEO_SIZE < videoData.length; segment++) {
-                        paramList[++cmdIndex] = @{@"command": @"APPEND",
-                                            @"media_id" : mediaID,
-                                            @"segment_index" : @(segment).stringValue
-                                            };
-                }
-                
-                paramList[++cmdIndex] = @{@"command": @"FINALIZE",
-                                 @"media_id" : mediaID };
-                
-                paramList[++cmdIndex] = @{@"status": self.statusContent,
-                                 @"media_ids" : @[mediaID]};
-                
-                //  ...listed in API but not sure if we need this command
-//                paramList[++cmdIndex] = @{@"command": @"STATUS",
-//                                          @"media_id" : mediaID
-//                                          };
+                [self processInitResp:responseData];
             }
             else if (i == paramList.count-1) {
                 if (completion != nil){
