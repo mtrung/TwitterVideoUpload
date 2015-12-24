@@ -36,8 +36,10 @@ static SocialVideoHelper *sInstance = nil;
     return sInstance;
 }
 
+#define KB (1<<10)
+#define MB (1<<20)
 #define VIDEO_CHUNK_SIZE 5000000 // 5*(1<<20)
-#define MAX_VIDEO_SIZE 15*(1<<20)
+#define MAX_VIDEO_SIZE (15 * MB)
 
 - (void) initialize {
     twitterPostURL = [[NSURL alloc] initWithString:@"https://upload.twitter.com/1.1/media/upload.json"];
@@ -71,6 +73,8 @@ static SocialVideoHelper *sInstance = nil;
                  if (toSendVideo && paramList.count > 0)
                      [self sendCommand:0];
              }
+         } else {
+             NSLog(@"Access denied");
          }
      }];
 }
@@ -95,12 +99,14 @@ static SocialVideoHelper *sInstance = nil;
         return FALSE;
     }
     
-    NSLog(@"Video size: %d bytes", videoData.length);
+    NSLog(@"Video size: %d B = %.1f KB = %.2f MB", videoData.length, (float)videoData.length / (float)KB, (float)videoData.length / (float)MB);
     
     if (videoData.length > MAX_VIDEO_SIZE) {
         NSLog(@"Video is too big");
         return FALSE;
     }
+    
+    // TODO: add more video check here per Twitter's requirement: https://dev.twitter.com/rest/public/uploading-media#videorecs
     
     return TRUE;
 }
@@ -162,7 +168,7 @@ static SocialVideoHelper *sInstance = nil;
                               @"media_ids" : @[mediaID]};
 }
 
-//  ...handle chunk upload
+//  ...add video chunk for APPEND command
 - (void) addVideoChunk:(SLRequest*)request {
     
     NSData* videoChunk;
@@ -208,14 +214,14 @@ static SocialVideoHelper *sInstance = nil;
     SLRequest *request = [SLRequest requestForServiceType:SLServiceTypeTwitter requestMethod:SLRequestMethodPOST
                                                       URL:url
                                                parameters:postParams];
-    // Set the account
+    //  ...Set the account
     request.account = self.account;
     
     NSString* cmdStr = postParams[@"command"];
     if (cmdStr == nil) cmdStr = @"";
     NSLog(@"%d >> %@", i, cmdStr);
-    //,request.preparedURLRequest.allHTTPHeaderFields);
 
+    //  ...add video chunk for APPEND command
     if ([cmdStr isEqualToString:@"APPEND"]) {
         [self addVideoChunk:request];
     }
@@ -259,6 +265,7 @@ static SocialVideoHelper *sInstance = nil;
             
             if (i+1 >= paramList.count) return;
             
+            //  ...send next command
             [self sendCommand:i+1];
         }
     }];
