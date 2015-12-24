@@ -36,6 +36,11 @@ static SocialVideoHelper *sInstance = nil;
     return sInstance;
 }
 
+#define KB (1<<10)
+#define MB (1<<20)
+#define VIDEO_CHUNK_SIZE 5000000 // 5*(1<<20)
+#define MAX_VIDEO_SIZE (15 * MB)
+
 - (void) initialize {
     twitterPostURL = [[NSURL alloc] initWithString:@"https://upload.twitter.com/1.1/media/upload.json"];
     twitterUpdateURL = [[NSURL alloc] initWithString:@"https://api.twitter.com/1.1/statuses/update.json"];
@@ -68,6 +73,8 @@ static SocialVideoHelper *sInstance = nil;
                  if (toSendVideo && paramList.count > 0)
                      [self sendCommand:0];
              }
+         } else {
+             NSLog(@"Access denied");
          }
      }];
 }
@@ -92,8 +99,15 @@ static SocialVideoHelper *sInstance = nil;
         return FALSE;
     }
     
-    NSString* sizeStr = @(videoData.length).stringValue;
-    NSLog(@"Video size: %@ bytes", sizeStr);
+    NSLog(@"Video size: %d B = %.1f KB = %.2f MB", videoData.length, (float)videoData.length / (float)KB, (float)videoData.length / (float)MB);
+    
+    if (videoData.length > MAX_VIDEO_SIZE) {
+        NSLog(@"Video is too big");
+        return FALSE;
+    }
+    
+    // TODO: add more video check here per Twitter's requirement: https://dev.twitter.com/rest/public/uploading-media#videorecs
+    
     return TRUE;
 }
 
@@ -128,6 +142,54 @@ static SocialVideoHelper *sInstance = nil;
     return TRUE;
 }
 
+- (void) processInitResp:(NSData*)responseData {
+    NSError* error = nil;
+    NSMutableDictionary *returnedData = [NSJSONSerialization JSONObjectWithData:responseData
+                                                                        options:NSJSONReadingMutableContainers error:&error];
+    
+    mediaID = [NSString stringWithFormat:@"%@", [returnedData valueForKey:@"media_id_string"]];
+    NSLog(@"mediaID = %@", mediaID);
+    
+    //  ...since we have mediaID, we now can populate the rest of paramList
+    
+    int cmdIndex = 0;
+    int segment = 0;
+    for (; segment*VIDEO_CHUNK_SIZE < videoData.length; segment++) {
+        paramList[++cmdIndex] = @{@"command": @"APPEND",
+                                  @"media_id" : mediaID,
+                                  @"segment_index" : @(segment).stringValue
+                                  };
+    }
+    
+    paramList[++cmdIndex] = @{@"command": @"FINALIZE",
+                              @"media_id" : mediaID };
+    
+    paramList[++cmdIndex] = @{@"status": self.statusContent,
+                              @"media_ids" : @[mediaID]};
+}
+
+//  ...add video chunk for APPEND command
+- (void) addVideoChunk:(SLRequest*)request {
+    
+    NSData* videoChunk;
+    
+    if (videoData.length > VIDEO_CHUNK_SIZE) {
+        int segment_index = [request.parameters[@"segment_index"] intValue];
+        
+        NSRange range = NSMakeRange(segment_index * VIDEO_CHUNK_SIZE, VIDEO_CHUNK_SIZE);
+        int maxPos = NSMaxRange(range);
+        if (maxPos >= videoData.length) {
+            range.length = videoData.length - range.location;
+        }
+        videoChunk = [videoData subdataWithRange:range];
+        NSLog(@"\tsegment_index %d: loc=%d len=%d", segment_index, range.location, range.length);
+    } else {
+        videoChunk = videoData;
+    }
+    
+    [request addMultipartData:videoChunk withName:@"media" type:@"video/mp4" filename:@"video"];
+}
+
 /* Standard success flow:
     0 >> INIT
     0 << INIT: HTTP status 202 accepted
@@ -147,67 +209,63 @@ static SocialVideoHelper *sInstance = nil;
     }
     
     NSDictionary* postParams = paramList[i];
+    NSURL* url = (i == paramList.count-1 && i > 0) ? twitterUpdateURL : twitterPostURL;
     
     SLRequest *request = [SLRequest requestForServiceType:SLServiceTypeTwitter requestMethod:SLRequestMethodPOST
-                                                      URL:((i<3)?twitterPostURL:twitterUpdateURL) parameters:postParams];
-    // Set the account and begin the request.
+                                                      URL:url
+                                               parameters:postParams];
+    //  ...Set the account
     request.account = self.account;
-    
-    if (i == 1) {
-        [request addMultipartData:videoData withName:@"media" type:@"video/mp4" filename:@"video"];
-    }
     
     NSString* cmdStr = postParams[@"command"];
     if (cmdStr == nil) cmdStr = @"";
     NSLog(@"%d >> %@", i, cmdStr);
-    //,request.preparedURLRequest.allHTTPHeaderFields);
+
+    //  ...add video chunk for APPEND command
+    if ([cmdStr isEqualToString:@"APPEND"]) {
+        [self addVideoChunk:request];
+    }
 
     [request performRequestWithHandler:^(NSData *responseData, NSHTTPURLResponse *urlResponse, NSError *error) {
         
         NSString* statusStr = [NSString stringWithFormat:@"HTTP status %d %@", [urlResponse statusCode], [NSHTTPURLResponse localizedStringForStatusCode:[urlResponse statusCode]]];
         NSLog(@"%d << %@: %@", i, cmdStr, statusStr);
-        
         //NSLog(@"%@", [[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding]);
         
         if (error) {
             NSLog(@"Error: %@", error);
         } else {
+            
+            //  ...must return 2XX status code; if not, stop & return error
             BOOL is2XX = ([urlResponse statusCode] / 100) == 2;
             if (!is2XX) {
+                NSString* respStr = [[NSString alloc] initWithData:responseData encoding:NSUTF8StringEncoding];
+                NSLog(@"%@", respStr);
+
+                NSString* errStr = statusStr;
+                
                 NSMutableDictionary *returnedData = [NSJSONSerialization JSONObjectWithData:responseData options:NSJSONReadingMutableContainers error:&error];
-                NSString* errStr = (returnedData) ? returnedData[@"error"] : statusStr;
+                if (returnedData && (returnedData[@"error"] || returnedData[@"errors"])) {
+                    errStr = respStr;
+                }
+                
                 DispatchMainThread(^(){completion(errStr);});
                 return;
             }
             
             if (i == 0) {
-                NSMutableDictionary *returnedData = [NSJSONSerialization JSONObjectWithData:responseData options:NSJSONReadingMutableContainers error:&error];
-                
-                mediaID = [NSString stringWithFormat:@"%@", [returnedData valueForKey:@"media_id_string"]];
-                NSLog(@"mediaID = %@", mediaID);
-                
-                //  ...since we have mediaID, we now can populate the rest of paramList
-                
-                int cmdIndex = 1;
-                paramList[cmdIndex] = @{@"command": @"APPEND",
-                                 @"media_id" : mediaID,
-                                 @"segment_index" : @(cmdIndex-1).stringValue
-                                 };
-                
-                paramList[++cmdIndex] = @{@"command": @"FINALIZE",
-                                 @"media_id" : mediaID };
-                
-                paramList[++cmdIndex] = @{@"status": self.statusContent,
-                                 @"media_ids" : @[mediaID]};
+                [self processInitResp:responseData];
             }
-            else if (i == 3) {
+            else if (i == paramList.count-1) {
                 if (completion != nil){
-                    NSLog(@"upload success !");
                     DispatchMainThread(^(){completion(nil);});
                 }
                 return;
             }
             
+            if (i+1 >= paramList.count) return;
+            
+            //  ...send next command
             [self sendCommand:i+1];
         }
     }];

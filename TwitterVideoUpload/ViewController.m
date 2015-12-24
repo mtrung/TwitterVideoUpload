@@ -32,6 +32,9 @@
 - (IBAction)shareFail:(id)sender {
     [self share:@"fail_finalize"];
 }
+- (IBAction)sharePassBig:(id)sender {
+    [self share:@"shareBig"];
+}
 
 - (void) share:(NSString*)filename {
     

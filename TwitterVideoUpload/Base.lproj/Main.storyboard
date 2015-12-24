@@ -23,27 +23,47 @@
                                 <fontDescription key="fontDescription" type="system" pointSize="14"/>
                                 <textInputTraits key="textInputTraits" autocapitalizationType="sentences"/>
                             </textView>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="jWe-Z3-68s">
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="jWe-Z3-68s">
                                 <rect key="frame" x="20" y="28" width="153" height="30"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="153" id="lSU-5D-6lR"/>
+                                </constraints>
                                 <state key="normal" title="Share (pass)"/>
                                 <connections>
                                     <action selector="sharePass:" destination="BYZ-38-t0r" eventType="touchUpInside" id="7UX-j4-Kxr"/>
                                 </connections>
                             </button>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ZO1-Sb-CWa">
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ZO1-Sb-CWa">
                                 <rect key="frame" x="20" y="66" width="153" height="30"/>
                                 <state key="normal" title="Share (failed)"/>
                                 <connections>
                                     <action selector="shareFail:" destination="BYZ-38-t0r" eventType="touchUpInside" id="WTb-DS-QJf"/>
                                 </connections>
                             </button>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="aRD-n1-2RT">
+                                <rect key="frame" x="471" y="28" width="109" height="30"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="109" id="EGh-qo-60s"/>
+                                </constraints>
+                                <state key="normal" title="Share Big"/>
+                                <connections>
+                                    <action selector="sharePassBig:" destination="BYZ-38-t0r" eventType="touchUpInside" id="bxj-Py-qPa"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="calibratedWhite"/>
                         <constraints>
+                            <constraint firstItem="aRD-n1-2RT" firstAttribute="baseline" secondItem="jWe-Z3-68s" secondAttribute="baseline" id="1kl-KD-L2G"/>
                             <constraint firstItem="yWv-jh-GGw" firstAttribute="trailing" secondItem="8bC-Xf-vdC" secondAttribute="trailingMargin" id="Bdh-rh-abM"/>
                             <constraint firstAttribute="bottom" secondItem="yWv-jh-GGw" secondAttribute="bottom" constant="20" symbolic="YES" id="Hrf-4C-D4U"/>
                             <constraint firstItem="yWv-jh-GGw" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leadingMargin" id="MVo-7e-tWN"/>
                             <constraint firstItem="yWv-jh-GGw" firstAttribute="top" secondItem="y3c-jy-aDJ" secondAttribute="bottom" constant="89" id="Mj5-ia-Elx"/>
+                            <constraint firstItem="jWe-Z3-68s" firstAttribute="top" secondItem="y3c-jy-aDJ" secondAttribute="bottom" constant="8" symbolic="YES" id="U3w-SG-xmu"/>
+                            <constraint firstItem="aRD-n1-2RT" firstAttribute="trailing" secondItem="yWv-jh-GGw" secondAttribute="trailing" id="cQa-QN-XJR"/>
+                            <constraint firstItem="ZO1-Sb-CWa" firstAttribute="top" secondItem="jWe-Z3-68s" secondAttribute="bottom" constant="8" symbolic="YES" id="fea-ic-V2O"/>
+                            <constraint firstItem="ZO1-Sb-CWa" firstAttribute="leading" secondItem="yWv-jh-GGw" secondAttribute="leading" id="max-dH-qPo"/>
+                            <constraint firstItem="ZO1-Sb-CWa" firstAttribute="trailing" secondItem="jWe-Z3-68s" secondAttribute="trailing" id="vsX-4o-oyW"/>
+                            <constraint firstItem="jWe-Z3-68s" firstAttribute="leading" secondItem="ZO1-Sb-CWa" secondAttribute="leading" id="yoI-AW-FDg"/>
                         </constraints>
                     </view>
                     <connections>
