@@ -5,10 +5,10 @@
 //  Copyright (c) 2015 Trung Vo. All rights reserved.
 //
 
-#import "SocialVideoHelper.h"
+#import "TwitterVideoUpload.h"
 
 
-@interface SocialVideoHelper ()
+@interface TwitterVideoUpload ()
 {
     NSData* videoData;
     NSString* mediaID;
@@ -24,13 +24,13 @@
 @end
 
 
-@implementation SocialVideoHelper
+@implementation TwitterVideoUpload
 
-static SocialVideoHelper *sInstance = nil;
+static TwitterVideoUpload *sInstance = nil;
 
-+ (SocialVideoHelper*) instance {
++ (TwitterVideoUpload*) instance {
     if (sInstance == nil) {
-        sInstance = [SocialVideoHelper new];
+        sInstance = [TwitterVideoUpload new];
         [sInstance initialize];
     }
     return sInstance;
@@ -118,7 +118,7 @@ static SocialVideoHelper *sInstance = nil;
  */
 - (BOOL) uploadTwitterVideo:(CbUploadComplete)completionBlock {
     
-    if ([SocialVideoHelper userHasAccessToTwitter] == FALSE) {
+    if ([TwitterVideoUpload userHasAccessToTwitter] == FALSE) {
         NSLog(@"No Twitter account. Please add twitter account to Settings app.");
         return FALSE;
     }

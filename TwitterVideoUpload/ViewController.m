@@ -7,7 +7,7 @@
 //
 
 #import "ViewController.h"
-#import "SocialVideoHelper.h"
+#import "TwitterVideoUpload.h"
 
 @interface ViewController ()
 
@@ -22,7 +22,7 @@
     [super viewDidLoad];
     // Do any additional setup after loading the view, typically from a nib.
     
-    [SocialVideoHelper instance].statusContent = @"#TwitterVideo https://github.com/mtrung/TwitterVideoUpload";
+    [TwitterVideoUpload instance].statusContent = @"#TwitterVideo https://github.com/mtrung/TwitterVideoUpload";
     
 }
 
@@ -38,13 +38,13 @@
 
 - (void) share:(NSString*)filename {
     
-    BOOL status = [[SocialVideoHelper instance] setVideo:filename];
+    BOOL status = [[TwitterVideoUpload instance] setVideo:filename];
     if (status == FALSE) {
         [self addText:@"Failed reading video file"];
         return;
     }
     
-    status = [[SocialVideoHelper instance] uploadTwitterVideo:^(NSString* errorString)
+    status = [[TwitterVideoUpload instance] uploadTwitterVideo:^(NSString* errorString)
               {
                   NSString* printStr = [NSString stringWithFormat:@"Share video %@: %@", filename,
                                         (errorString == nil) ? @"Success" : errorString];
