@@ -102,7 +102,12 @@ static TwitterVideoUpload *sInstance = nil;
     }
     
     NSLog(@"Video size: %d B = %.1f KB = %.2f MB", videoData.length, (float)videoData.length / (float)KB, (float)videoData.length / (float)MB);
-    
+
+    if (videoData.length == 0) {
+        NSLog(@"Video is too small");
+        return FALSE;
+    }
+
     if (videoData.length > MAX_VIDEO_SIZE) {
         NSLog(@"Video is too big");
         return FALSE;
